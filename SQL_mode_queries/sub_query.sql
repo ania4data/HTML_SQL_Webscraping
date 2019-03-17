@@ -243,3 +243,127 @@ GROUP BY o.account_id
 HAVING AVG(o.total_amt_usd)>
 (SELECT AVG(total_amt_usd) avg_all_orders
 FROM orders)) t1
+
+------------
+--The WITH statement is often called a Common Table Expression or CTE.
+-- The CTE comes in table form, and is straight forward to use when call the event with FROM/JOIN
+-- # in case want to use in within where/having clause need to extract again the particular values in using 
+-- select statement e.g. HAVING x > (SELECT value FROM event)
+
+/*
+WITH table1 AS (
+          SELECT *
+          FROM web_events),
+
+     table2 AS (
+          SELECT *
+          FROM accounts)
+
+
+SELECT *
+FROM table1
+JOIN table2
+ON table1.account_id = table2.id;
+
+*/
+WITH event1 AS(SELECT a.name account_name, SUM(total_amt_usd) amt_usd
+				FROM orders o
+				JOIN accounts a
+				ON o.account_id = a.id
+				JOIN sales_reps s
+				ON a.sales_rep_id = s.id
+				JOIN region r
+				ON r.id = s.region_id
+				GROUP BY a.name),
+event2 AS(SELECT a.id --top_customer_id
+FROM orders o
+JOIN accounts a
+ON o.account_id = a.id
+JOIN sales_reps s
+ON a.sales_rep_id = s.id
+JOIN region r
+ON r.id = s.region_id
+GROUP BY a.name, a.id
+HAVING SUM(total_amt_usd) IN (SELECT MAX(event1.amt_usd) FROM event1))
+
+
+SELECT w.account_id, w.channel, COUNT(*)
+FROM web_events w
+GROUP BY w.account_id, w.channel
+HAVING w.account_id = (SELECT id FROM event2)
+
+WITH t1 AS (
+   SELECT AVG(o.total_amt_usd) avg_all
+   FROM orders o
+   JOIN accounts a
+   ON a.id = o.account_id),
+t2 AS (
+   SELECT o.account_id, AVG(o.total_amt_usd) avg_amt
+   FROM orders o
+   GROUP BY 1
+   HAVING AVG(o.total_amt_usd) > (SELECT * FROM t1))
+SELECT AVG(avg_amt)
+FROM t2;
+
+--For the customer that spent the most (in total over their lifetime as a customer) total_amt_usd, how many web_events did they have for each channel?
+
+WITH t1 AS (
+   SELECT a.id, a.name, SUM(o.total_amt_usd) tot_spent
+   FROM orders o
+   JOIN accounts a
+   ON a.id = o.account_id
+   GROUP BY a.id, a.name
+   ORDER BY 3 DESC
+   LIMIT 1)
+SELECT a.name, w.channel, COUNT(*)
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id AND a.id =  (SELECT id FROM t1)
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+--For the account that purchased the most (in total over their lifetime as a customer) standard_qty paper, how many accounts still had more in total purchases? 
+
+WITH t1 AS (
+  SELECT a.name account_name, SUM(o.standard_qty) total_std, SUM(o.total) total
+  FROM accounts a
+  JOIN orders o
+  ON o.account_id = a.id
+  GROUP BY 1
+  ORDER BY 2 DESC
+  LIMIT 1), 
+t2 AS (
+  SELECT a.name
+  FROM orders o
+  JOIN accounts a
+  ON a.id = o.account_id
+  GROUP BY 1
+  HAVING SUM(o.total) > (SELECT total FROM t1))
+SELECT COUNT(*)
+FROM t2;
+
+--For the region with the largest sales total_amt_usd, how many total orders were placed? 
+
+WITH t1 AS (
+   SELECT r.name region_name, SUM(o.total_amt_usd) total_amt
+   FROM sales_reps s
+   JOIN accounts a
+   ON a.sales_rep_id = s.id
+   JOIN orders o
+   ON o.account_id = a.id
+   JOIN region r
+   ON r.id = s.region_id
+   GROUP BY r.name), 
+t2 AS (
+   SELECT MAX(total_amt)
+   FROM t1)
+SELECT r.name, COUNT(o.total) total_orders
+FROM sales_reps s
+JOIN accounts a
+ON a.sales_rep_id = s.id
+JOIN orders o
+ON o.account_id = a.id
+JOIN region r
+ON r.id = s.region_id
+GROUP BY r.name
+HAVING SUM(o.total_amt_usd) = (SELECT * FROM t2);
