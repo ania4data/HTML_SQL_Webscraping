@@ -1,3 +1,6 @@
+SELECT name, SPLIT_PART(name,' ',1) first_seg
+FROM accounts
+
 /*
 In the accounts table, there is a column holding the website for each company.
 The last three digits specify what type of web address they are using. A list of extensions (and pricing) is provided here.
