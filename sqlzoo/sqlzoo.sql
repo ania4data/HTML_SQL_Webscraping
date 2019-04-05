@@ -330,3 +330,4 @@ SELECT mdate, team1, SUM(score_team1) score1, team2, SUM(score_team2) score2
 FROM t3
 GROUP BY mdate, matchid
 ORDER BY mdate, matchid, team1, team2
+
