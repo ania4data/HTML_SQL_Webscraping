@@ -169,3 +169,60 @@ LEAD(Num, 2) OVER(ORDER BY Id) lead_num2
 FROM Logs) t1
 WHERE Num = lead_num1 AND lead_num1 = lead_num2
 GROUP BY Num
+/*
++----+-------+--------+-----------+
+| Id | Name  | Salary | ManagerId |
++----+-------+--------+-----------+
+| 1  | Joe   | 70000  | 3         |
+| 2  | Henry | 80000  | 4         |
+| 3  | Sam   | 60000  | NULL      |
+| 4  | Max   | 90000  | NULL      |
++----+-------+--------+-----------+
+
+finds out employees who earn more than their managers
+
+*/
+
+SELECT t1.Name Employee
+FROM Employee t1, Employee t2
+WHERE t1.ManagerId = t2.Id AND t1.Salary > t2.Salary
+
+
+--184. Department Highest Salary
+
+/*
++----+-------+--------+--------------+
+| Id | Name  | Salary | DepartmentId |
++----+-------+--------+--------------+
+| 1  | Joe   | 70000  | 1            |
+| 2  | Jim   | 90000  | 1            |
+| 3  | Henry | 80000  | 2            |
+| 4  | Sam   | 60000  | 2            |
+| 5  | Max   | 90000  | 1            |
++----+-------+--------+--------------+
+
++----+----------+
+| Id | Name     |
++----+----------+
+| 1  | IT       |
+| 2  | Sales    |
++----+----------+
+*/
+--group by base
+SELECT Department.Name Department, Employee.Name Employee, t1.max_salary Salary
+FROM
+(SELECT DepartmentId, MAX(Salary) max_salary
+FROM Employee
+GROUP BY DepartmentId) t1
+JOIN Department
+ON Department.Id = t1.DepartmentId
+JOIN Employee
+ON Employee.DepartmentId = t1.DepartmentId AND t1.max_salary = Employee.Salary
+-- rank base
+SELECT Department.Name Department, t1.Name Employee, t1.Salary Salary 
+FROM
+(SELECT Name, Salary, DepartmentId,
+DENSE_RANK() OVER(PARTITION BY DepartmentId ORDER BY Salary DESC) AS salary_rank
+FROM Employee) t1
+JOIN Department
+ON t1.DepartmentId = Department.Id AND t1.salary_rank = 1 
