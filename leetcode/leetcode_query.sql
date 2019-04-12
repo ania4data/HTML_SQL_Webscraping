@@ -101,8 +101,20 @@ FROM seat) t2
 ON t1.counter1 = t2.counter2 AND ((tag1 = tag2 AND t1.id != t2.id) OR
       ((t1.id = (SELECT COUNT(*) FROM seat)) AND (MOD(t1.id, 2)=1) AND t1.student1 = t2.student2))  -- keep last entry if odd
 ORDER BY t1.id 
+--
+WITH seat_new AS(SELECT id, student, CEIL(id*0.5) tag
+FROM seat),
 
+     count_table AS(SELECT COUNT(*) FROM seat)
 
+SELECT t1.id, t2.student
+FROM seat_new t1
+JOIN seat_new t2
+ON t1.tag = t2.tag
+WHERE (t1.student != t2.student) OR (t1.id = (SELECT * FROM count_table) AND MOD(t1.id,2) = 1)
+ORDER BY t1.id
+
+--
 
 SELECT Id, Email, row_num
 FROM
@@ -218,6 +230,17 @@ JOIN Department
 ON Department.Id = t1.DepartmentId
 JOIN Employee
 ON Employee.DepartmentId = t1.DepartmentId AND t1.max_salary = Employee.Salary
+
+SELECT d.Name Department, e.Name Employee, t1.max_salary Salary
+FROM
+(SELECT DepartmentId, MAX(Salary) max_salary
+FROM Employee
+GROUP BY DepartmentId) t1
+JOIN Employee e
+ON t1.max_salary = e.Salary AND t1.DepartmentId = e.DepartmentId
+JOIN Department d
+ON e.DepartmentId = d.Id
+
 -- rank base
 SELECT Department.Name Department, t1.Name Employee, t1.Salary Salary 
 FROM
@@ -226,3 +249,81 @@ DENSE_RANK() OVER(PARTITION BY DepartmentId ORDER BY Salary DESC) AS salary_rank
 FROM Employee) t1
 JOIN Department
 ON t1.DepartmentId = Department.Id AND t1.salary_rank = 1 
+
+
+/*
+176. Second Highest Salary
++----+--------+
+| Id | Salary |
++----+--------+
+| 1  | 100    |
+| 2  | 200    |
+| 3  | 300    |
++----+--------+
++---------------------+
+| SecondHighestSalary |
++---------------------+
+| 200                 |
++---------------------+
+
+*/
+
+SELECT (SELECT DISTINCT Salary
+FROM
+(SELECT Salary,
+DENSE_RANK() OVER (ORDER BY Salary DESC) AS rank
+FROM Employee) t1
+WHERE rank = 2) SecondHighestSalary   -- goal to get the null if did not find (that's why all extra select), other wise structure to get 2nd and coming of empty is correct
+
+SELECT (SELECT DISTINCT Salary
+FROM Employee
+ORDER BY Salary DESC
+LIMIT 1 OFFSET 1) SecondHighestSalary
+
+SELECT MAX(DISTINCT Salary) SecondHighestSalary
+FROM Employee 
+WHERE Salary NOT IN (SELECT MAX(DISTINCT Salary) FROM Employee)  -- inner loop get max salary, outer loop get 2ndmax (by excluding first max)
+
+-- DELETE Duplicate
+
+--IF want to drop all dupliacate email owners
+
+DELETE FROM Person
+WHERE Email IN (SELECT * FROM (SELECT Email FROM Person GROUP BY Email HAVING COUNT(*) >=2) t1)
+-- 196. Delete Duplicate Emails
+-- IF WANT to drop the extra count per person
+-- Write a SQL query to delete all duplicate email entries in a table named Person, keeping only unique emails based on its smallest Id.
+DELETE FROM Person
+WHERE Id NOT IN
+(SELECT * FROM (SELECT MIN(Id)
+FROM Person
+GROUP BY Email) t1)
+
+-- 178. Rank Scores  had to clean up the extra decimals in some entries
+SELECT new_score Score,
+DENSE_RANK() OVER (ORDER BY new_score DESC) AS Rank
+FROM
+(SELECT Id, ROUND(Score, 2) new_score
+FROM Scores) t1
+
+-- 197. Rising Temperature
+-- Given a Weather table, write a SQL query to find all dates' Ids with higher temperature compared to its previous (yesterday's) dates.
+SELECT w1.Id  --, w1.Temperature, w2.Temperature, w1.RecordDate, w2.RecordDate
+FROM Weather w1
+CROSS JOIN Weather w2  --DATEDIFF(w1.date, w.date)
+WHERE (w1.RecordDate = w2.RecordDate + 1) AND  (w1.Temperature > w2.Temperature) -- interval '1 day' AND 
+
+--175. Combine Two Tables
+-- Write a SQL query for a report that provides the following information for each person in the Person table, regardless if there is an address for each of those people:
+SELECT p.FirstName, p.LastName, a.City, a.State
+FROM Person p
+LEFT JOIN Address a
+ON p.PersonId = a.PersonId
+
+
+--620. Not Boring Movies
+
+SELECT id, movie, description, rating
+FROM cinema
+WHERE MOD(id,2) = 1 AND LOWER(description) NOT LIKE '%boring%'   -- STRPOS(LOWER(description),'boring') = 0 (did not find)
+ORDER BY rating DESC
