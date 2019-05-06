@@ -86,3 +86,33 @@ FROM
 FROM generate_series(1, 1000) series) t1    --need 1000 of them, since 1000000 >> 1000 repetiotin not seen
 GROUP BY random_num
 
+-- rolling average  using join
+
+WITH t1 AS (SELECT account_id, occurred_at, gloss_qty,
+			ROW_NUMBER() OVER(ORDER BY occurred_at) row_num
+			FROM orders
+			WHERE account_id = 1051
+			ORDER BY occurred_at),
+	  t2 AS (SELECT t1_t.account_id, t1_t.occurred_at, t1_t.row_num, t2_t.gloss_qty
+			 FROM t1 t1_t, t1 t2_t
+			 WHERE t1_t.row_num IN (t2_t.row_num+1, t2_t.row_num+2, t2_t.row_num+3)
+			 ORDER BY t1_t.row_num, t2_t.row_num)
+             
+-- rolling avg join
+SELECT row_num, occurred_at, ROUND(AVG(gloss_qty), 1)
+FROM t2
+GROUP BY row_num, occurred_at
+ORDER BY row_num
+
+select signups.date, signups.count, avg(signups_past.count)
+from signups
+join signups as signups_past 
+  on signups_past.date between signups.date - 6 and signups.date
+group by 1, 2
+
+--- window 2 preceding + current = 3
+SELECT account_id, occurred_at,
+			ROUND(AVG(gloss_qty) OVER(ORDER BY occurred_at ASC ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 1) roll_avg_gloss
+			FROM orders
+			WHERE account_id = 1051
+			ORDER BY occurred_at

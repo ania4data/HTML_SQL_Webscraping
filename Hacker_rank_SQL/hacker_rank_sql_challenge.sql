@@ -75,5 +75,76 @@ ORDER BY text ASC;
 SELECT CONCAT("There are a total of ",COUNT(*)," ",LOWER(Occupation),"s.") FROM OCCUPATIONS
 GROUP BY Occupation
 ORDER BY COUNT(*) ASC, Occupation ASC;
+/*
+Query the list of CITY names from STATION that either do not start with vowels or do not end with vowels. Your result cannot contain duplicates.
+*/
 
+SELECT DISTINCT CITY
+FROM STATION
+WHERE (LEFT(LOWER(CITY), 1) NOT IN ('a', 'i', 'e', 'o', 'u')) OR (RIGHT(LOWER(CITY), 1) NOT IN ('a', 'i', 'e', 'o', 'u'));
+/*
 
+Query the Name of any student in STUDENTS who scored higher than  Marks. Order your output by the last three characters of each name.
+ If two or more students both have names ending in the same last three characters (i.e.: Bobby, Robby, etc.), secondary sort them by ascending ID
+*/
+SELECT Name
+FROM STUDENTS
+WHERE Marks>75
+ORDER BY RIGHT(Name, 3), ID ASC;
+/*
+
+Considerp1(a,b)  and p2(c,d) to be two points on a 2D plane.
+
+a happens to equal the minimum value in Northern Latitude (LAT_N in STATION).
+b happens to equal the minimum value in Western Longitude (LONG_W in STATION).
+c happens to equal the maximum value in Northern Latitude (LAT_N in STATION).
+d happens to equal the maximum value in Western Longitude (LONG_W in STATION).
+Query the Manhattan Distance between points  and  and round it to a scale of  decimal places.
+
+*/
+
+SELECT ROUND((c-a) + (d-b),4)
+FROM
+(SELECT
+(SELECT MIN(LAT_N) FROM STATION) a,
+(SELECT MIN(LONG_W) FROM STATION) b,
+(SELECT MAX(LAT_N) FROM STATION) c,
+(SELECT MAX(LONG_W) FROM STATION) d) t1
+/*
+Consider p1(a,b)  andp2(c,d)to be two points on a 2D plane where a,b are the respective minimum and maximum values 
+of Northern Latitude (LAT_N) and c,d-b are the respective minimum and maximum values of Western Longitude (LONG_W) in STATION.
+
+Query the Euclidean Distance between points p1 and p2 and format your answer to display  decimal digits.
+
+*/
+
+SELECT ROUND(SQRT(POWER((b-a),2) + POWER((d-c),2)),4)
+FROM
+(SELECT
+(SELECT MIN(LAT_N) FROM STATION) a,
+(SELECT MAX(LAT_N) FROM STATION) b,
+(SELECT MIN(LONG_W) FROM STATION) c,
+(SELECT MAX(LONG_W) FROM STATION) d) t1s
+
+/*
+A median is defined as a number separating the higher half of a data set from the lower half.
+ Query the median of the Northern Latitudes (LAT_N) from STATION and round your answer to  decimal places.
+
+Input Format
+
+The STATION table is described as follows:
+*/
+
+SELECT ROUND(AVG(LAT_N),4)
+FROM
+(SELECT LAT_N,
+CASE 
+    WHEN (MOD(counter,2)=0 AND row_ IN (counter/2, counter/2 +1)) THEN 1
+    WHEN (MOD(counter,2)=1 AND row_ IN ((counter+1)/2)) THEN 1
+    END AS tag
+FROM
+(SELECT LAT_N,
+ROW_NUMBER() OVER(ORDER BY LAT_N) row_,
+(SELECT COUNT(*) FROM STATION) counter
+FROM STATION) t1) t2
+WHERE tag = 1;
