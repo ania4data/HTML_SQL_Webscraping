@@ -148,3 +148,50 @@ ROW_NUMBER() OVER(ORDER BY LAT_N) row_,
 (SELECT COUNT(*) FROM STATION) counter
 FROM STATION) t1) t2
 WHERE tag = 1;
+/*
+Write a query identifying the type of each record in the TRIANGLES table using its three side lengths. Output one of the following statements for each record in the table:
+
+Equilateral: It's a triangle with  sides of equal length.
+Isosceles: It's a triangle with  sides of equal length.
+Scalene: It's a triangle with  sides of differing lengths.
+Not A Triangle: The given values of A, B, and C don't form a triangle.
+
+*/
+
+
+SELECT
+CASE 
+WHEN A+B <= C OR A+C <= B OR B+C <= A THEN 'Not A Triangle'
+WHEN A=B AND B=C THEN 'Equilateral'
+WHEN A!=B AND B!=C AND A!=C THEN 'Scalene'
+WHEN A=B OR B=C OR A=C THEN 'Isosceles'
+END
+FROM TRIANGLES;
+
+/*
+Hackers
+Challenges:
+Julia asked her students to create some coding challenges. Write a query to print the hacker_id, name,
+and the total number of challenges created by each student. Sort your results by the total number of challenges in descending order.
+If more than one student created the same number of challenges, then sort the result by hacker_id.
+If more than one student created the same number of challenges and the count is less than the maximum number of challenges created,
+then exclude those students from the result.
+*/
+
+
+WITH
+t1 AS (
+SELECT h.hacker_id, h.name, COUNT(challenge_id) challenges_created
+FROM Hackers h
+JOIN Challenges c
+ON h.hacker_id = c.hacker_id
+GROUP BY h.hacker_id, h.name
+ORDER BY challenges_created DESC, h.hacker_id),
+t2 AS (SELECT MAX(challenges_created) max_count FROM t1),
+t3 AS (SELECT challenges_created challenge_count, COUNT(name) name_count FROM t1 GROUP BY challenges_created)
+SELECT t1.hacker_id, t1.name, t1.challenges_created --, t3.name_count, (SELECT max_count FROM t2)
+FROM t1
+JOIN t3
+ON t1.challenges_created = t3.challenge_count
+WHERE (t3.name_count > 1 AND t1.challenges_created >= (SELECT max_count FROM t2)) OR t3.name_count = 1
+ORDER BY t1.challenges_created DESC, t3.name_count DESC, t1.hacker_id;
