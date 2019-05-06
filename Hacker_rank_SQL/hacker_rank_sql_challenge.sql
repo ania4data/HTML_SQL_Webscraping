@@ -178,7 +178,6 @@ If more than one student created the same number of challenges and the count is 
 then exclude those students from the result.
 */
 
-
 WITH
 t1 AS (
 SELECT h.hacker_id, h.name, COUNT(challenge_id) challenges_created
