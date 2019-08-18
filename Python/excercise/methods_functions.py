@@ -1,3 +1,4 @@
+from functools import reduce
 
 def myfunc1(*args):
 	'''
@@ -27,15 +28,20 @@ def myfunc5(args):
 	return args[0] * 5
 
 
-
 if __name__ == '__main__':
 	print(myfunc2(1, 5 , 12, 14))
 	print(myfunc3('EKJbEsdlfwerrksek'))
 	myfunc4(1, 42, 5, 'o', code='python ')
 	print(list(map(myfunc5, 'test')))
 	print(list(map(myfunc5, ('10', '20', '30'))))
+	print(list(map(lambda x: x**2, [1, 5, 9])))
+	print(reduce(lambda x, y: x * y, [1, 2, 3, 4]))
+	print(list(filter(lambda x: x.startswith('z'), ['zero', 'ab', 'zebra'])))
 #[12, 14]
 #eKjBeSdLfWeRrKsEk
 #4 python python
 #['ttttt', 'eeeee', 'sssss', 'ttttt']
 #['11111', '22222', '33333']
+#[1, 25, 81]
+#24
+#['zero', 'zebra']
